@@ -8,6 +8,7 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
+from sqlalchemy.exc import OperationalError
 
 from .config import config_problems, get_settings
 from .db import Base, SessionLocal, engine
@@ -31,8 +32,14 @@ async def lifespan(_app: FastAPI):
         raise RuntimeError("Unsafe settings, so the server won't start:\n- " + "\n- ".join(errors))
     for w in warnings:
         log.warning(w)
-    Base.metadata.create_all(engine)
-    upgrade(engine)
+    try:
+        Base.metadata.create_all(engine)
+        upgrade(engine)
+    except OperationalError as exc:
+        # the driver's message names the host and the reason, never the password
+        reason = str(exc.orig).strip().splitlines()[0] if exc.orig else "no details"
+        raise RuntimeError(f"Can't connect to the database ({reason}). Check DATABASE_URL: copy the connection "
+                           "string again from Neon or Supabase and make sure the database is running.") from None
     with SessionLocal() as db:
         ensure_seed(db)
         has_users = db.scalar(select(User.id).limit(1)) is not None
