@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1B1A17" />
+    <meta name="robots" content="noindex" />
+    <title>Crunch Seller</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231E6E3A'/%3E%3Ctext x='32' y='45' font-family='Arial Black,Arial' font-size='36' font-weight='900' text-anchor='middle' fill='%23F5C211'%3ES%3C/text%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Hind:wght@400;500;600;700&family=Kalam:wght@400;700&display=swap" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      // Opened by double-clicking the file? These sites need the Crunch server running.
+      if (location.protocol === 'file:') {
+        document.getElementById('app').innerHTML =
+          '<div style="font:17px/1.6 Segoe UI,system-ui,sans-serif;max-width:600px;margin:12vh auto;padding:28px;border-radius:16px;background:#FFF3C4;color:#1B1A17">' +
+          '<h1 style="margin:0 0 8px;font-size:26px">This page needs the Crunch server</h1>' +
+          '<p style="margin:0 0 12px">These websites can\'t be opened by double-clicking their files. Start the server instead:</p>' +
+          '<ol style="margin:0 0 12px;padding-left:22px"><li>Open the <b>crunch</b> folder on your Desktop</li>' +
+          '<li>Double-click <b>start.bat</b></li>' +
+          '<li>Your browser opens the sites at <b>http://127.0.0.1:8000</b> by itself</li></ol>' +
+          '<p style="margin:0">Buyer: <b>127.0.0.1:8000</b> &middot; Seller: <b>127.0.0.1:8000/seller/</b> &middot; Admin: <b>127.0.0.1:8000/admin/</b></p></div>'
+      }
+    </script>
+    <script type="module" src="/src/seller/main.js"></script>
+  </body>
+</html>
