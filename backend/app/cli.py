@@ -62,6 +62,32 @@ def setup() -> None:
         print("  First time here: the admin site will ask you to create your owner account.")
 
 
+def check_db(raw: str | None) -> None:
+    """Test a database connection string before pasting it into your host's settings."""
+    from sqlalchemy.exc import OperationalError
+
+    from .config import get_settings
+    from .db import _SUPABASE_DIRECT, DatabaseUrlError, clean_database_url, database_host, explain_connection_error, make_engine
+
+    raw = raw if raw is not None else get_settings().database_url
+    try:
+        url = clean_database_url(raw)
+    except DatabaseUrlError as e:
+        sys.exit(f"PROBLEM: {e}")
+    if url.startswith("sqlite"):
+        sys.exit("PROBLEM: that's the local SQLite file, not a hosted database. Pass your postgresql:// string.")
+    host = database_host(url)
+    if _SUPABASE_DIRECT.match(host):
+        print("WARNING: this is Supabase's direct address. It may work here, but not on Render (IPv6 only). "
+              "Use the Session pooler string instead.")
+    try:
+        with make_engine(raw).connect() as conn:
+            version = conn.exec_driver_sql("select version()").scalar() or ""
+    except OperationalError as e:
+        sys.exit("PROBLEM: " + explain_connection_error(e, url))
+    print(f"OK: connected to {host} ({version.split(',')[0]}). Paste the same string into DATABASE_URL on Render.")
+
+
 def demo_data(days: int) -> None:
     """Fake orders spread over recent days, marked 'Demo' so they're easy to spot."""
     db = _init()
@@ -122,6 +148,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="python -m app.cli")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("setup", help="First-run setup: .env, database and the owner account")
+    cp = sub.add_parser("check-db", help="Test a database connection string (Supabase/Neon) before deploying")
+    cp.add_argument("url", nargs="?", help="The postgresql:// string. Leave out to test DATABASE_URL")
     for cmd in ("create-owner", "create-seller"):
         sp = sub.add_parser(cmd)
         sp.add_argument("--email", required=True)
@@ -134,6 +162,8 @@ def main(argv=None):
 
     if args.cmd == "setup":
         setup()
+    elif args.cmd == "check-db":
+        check_db(args.url)
     elif args.cmd in ("create-owner", "create-seller"):
         create_user("owner" if args.cmd == "create-owner" else "seller", args.email, args.name, args.password)
     elif args.cmd == "demo-data":

@@ -1,6 +1,6 @@
 import os
 
-os.environ["DATABASE_URL"] = "sqlite://"
+os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "sqlite://")  # set TEST_DATABASE_URL to test on Postgres
 os.environ["AI_PROVIDER"] = "basic"
 os.environ["JWT_SECRET"] = "test-secret-not-for-production-use-0123456789"
 

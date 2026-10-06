@@ -106,6 +106,10 @@ def model_agent(db: Session, user: User, history: list[dict], endpoint) -> dict:
 
 # ---------------- basic mode: no model needed ----------------
 
+def _count(n, word):
+    return f"{n} {word}" + ("" if n == 1 else "s")
+
+
 def _pct(v):
     return "" if v is None else (f" ({'up' if v >= 0 else 'down'} {abs(v):g}%)")
 
@@ -181,7 +185,7 @@ def basic_agent(db: Session, user: User, text: str) -> dict:
         r = use("get_sales_by_payment", days=days)
         reply = f"Last {days} days: cash {r['cash']}, UPI {r['upi']}."
         if r["unpaid_orders"]:
-            reply += f" {r['unpaid_orders']} orders ({r['unpaid_amount']}) are still unpaid."
+            reply += f" {_count(r['unpaid_orders'], 'order')} ({r['unpaid_amount']}) {'is' if r['unpaid_orders'] == 1 else 'are'} still unpaid."
     elif re.search(r"top|best|popular|most|favourite|favorite|topping|sauce|masala|base", t):
         r = use("get_top_products", days=days)
         parts = [f"{label}: {r[cat][0]['name']} ({r[cat][0]['count']})" for cat, label in
@@ -210,7 +214,7 @@ def basic_agent(db: Session, user: User, text: str) -> dict:
         reply = (f"Today so far: {r['orders']} orders, {r['packets']} packets, {r['revenue_text']} collected "
                  f"(cash {inr(r['by_payment'].get('cash', 0))}, UPI {inr(r['by_payment'].get('upi', 0))}).")
         if r["unpaid_orders"]:
-            reply += f" {r['unpaid_orders']} orders ({r['unpaid_amount_text']}) are still unpaid."
+            reply += f" {_count(r['unpaid_orders'], 'order')} ({r['unpaid_amount_text']}) {'is' if r['unpaid_orders'] == 1 else 'are'} still unpaid."
         if r["refunds"]:
             reply += f" Refunds: {r['refunds_text']}."
     else:

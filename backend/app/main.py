@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 
 from .config import config_problems, get_settings
-from .db import Base, SessionLocal, engine
+from .db import DATABASE_URL, Base, SessionLocal, engine, explain_connection_error
 from .deps import is_local_request
 from .middleware import SecurityMiddleware, build_csp, inline_script_hashes
 from .migrate import upgrade
@@ -36,10 +36,8 @@ async def lifespan(_app: FastAPI):
         Base.metadata.create_all(engine)
         upgrade(engine)
     except OperationalError as exc:
-        # the driver's message names the host and the reason, never the password
-        reason = str(exc.orig).strip().splitlines()[0] if exc.orig else "no details"
-        raise RuntimeError(f"Can't connect to the database ({reason}). Check DATABASE_URL: copy the connection "
-                           "string again from Neon or Supabase and make sure the database is running.") from None
+        # names the host and the reason in plain words, never the password
+        raise RuntimeError(explain_connection_error(exc, DATABASE_URL)) from None
     with SessionLocal() as db:
         ensure_seed(db)
         has_users = db.scalar(select(User.id).limit(1)) is not None

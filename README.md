@@ -98,6 +98,8 @@ Create your owner account on this computer first (http://127.0.0.1:8000/admin/).
 
 ## Put it online for free (permanent)
 
+**Step-by-step guide for Render + Supabase, with a troubleshooting table: [DEPLOY.md](DEPLOY.md).** The summary is below.
+
 The simplest setup is **one Render web service** running the Dockerfile. It serves the API and all three websites from one address, with the database on **Supabase** or **Neon**.
 
 1. **Database.** Create a free project on [Neon](https://neon.tech) and copy its connection string (it starts with `postgresql://` and ends with `?sslmode=require`). Supabase works too, but use its **Session pooler** connection string: Supabase's direct address needs IPv6, which Render doesn't support.
