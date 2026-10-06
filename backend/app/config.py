@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEV_SECRET = "dev-only-change-me"
@@ -18,6 +19,9 @@ class Settings(BaseSettings):
 
     env: str = "development"
     database_url: str = "sqlite:///./crunch.db"
+    # Free hosts (Render free plan) wipe their disk on every restart, so a SQLite file there
+    # silently loses every order. Production refuses SQLite unless you switch this on knowingly.
+    allow_sqlite_in_production: bool = False
     jwt_secret: str = DEV_SECRET
     jwt_expire_minutes: int = 720
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
@@ -48,6 +52,14 @@ class Settings(BaseSettings):
     api_docs_public: bool = False
     # Extra origins the websites may call, when the API lives on another domain (CSP connect-src)
     csp_connect_extra: str = ""
+
+    @field_validator("database_url", "jwt_secret", "env", mode="before")
+    @classmethod
+    def blank_means_default(cls, v, info):
+        # a host's settings page can send an empty value; treat it as "not set"
+        if isinstance(v, str) and not v.strip():
+            return cls.model_fields[info.field_name].default
+        return v.strip() if isinstance(v, str) else v
 
     @property
     def cors_list(self) -> list[str]:
@@ -85,7 +97,12 @@ def config_problems(s: Settings) -> tuple[list[str], list[str]]:
         if any(o.startswith("http://") and "localhost" not in o and "127.0.0.1" not in o for o in s.cors_list):
             warnings.append("CORS_ORIGINS has a plain http:// address. Use https:// addresses in production.")
         if s.database_url.startswith("sqlite"):
-            warnings.append("Production is using SQLite. Free hosts wipe their disk on redeploy; use Supabase or Neon.")
+            if s.allow_sqlite_in_production:
+                warnings.append("Production is using SQLite. Free hosts wipe their disk on restart; use Supabase or Neon.")
+            else:
+                errors.append("DATABASE_URL isn't set. Free hosts wipe their disk on every restart, so orders would be lost. "
+                              "Create a free Postgres database on neon.tech or supabase.com and paste its connection string "
+                              "into DATABASE_URL.")
         if s.api_docs_public:
             warnings.append("API_DOCS_PUBLIC is on, so anyone can browse your API reference.")
     elif weak_secret:

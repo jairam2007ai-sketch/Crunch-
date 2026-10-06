@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from app.config import get_settings
@@ -45,6 +46,16 @@ def test_setup_refused_through_a_tunnel_or_proxy():
 
 def test_setup_refused_in_production(monkeypatch):
     fresh()
-    monkeypatch.setattr(get_settings(), "env", "production")
+    s = get_settings()
+    monkeypatch.setattr(s, "env", "production")
+    monkeypatch.setattr(s, "allow_sqlite_in_production", True)
+    # with no owner configured, production won't even start (nobody could ever sign in)
+    with pytest.raises(RuntimeError, match="No owner account"):
+        with TestClient(app, client=("127.0.0.1", 50000)):
+            pass
+    # with the owner from settings, the browser form stays shut, even on the server itself
+    monkeypatch.setattr(s, "owner_email", "jai@shop.in")
+    monkeypatch.setattr(s, "owner_password", "mango-chips-river")
     with TestClient(app, client=("127.0.0.1", 50000)) as c:
+        assert c.get("/api/setup/status").json()["can_setup_here"] is False
         assert c.post("/api/setup/owner", json=OWNER).status_code == 403

@@ -226,9 +226,22 @@ def test_api_docs_only_on_this_computer():
 def test_unsafe_production_settings_stop_the_server():
     errors, _ = config_problems(Settings(env="production", jwt_secret=DEV_SECRET, cors_origins="*", _env_file=None))
     assert any("JWT_SECRET" in e for e in errors) and any("CORS_ORIGINS" in e for e in errors)
+    # SQLite on a free host loses every order on restart, so production refuses it unless allowed knowingly
+    errors, _ = config_problems(Settings(env="production", jwt_secret="x" * 48, cors_origins="https://crunch.app",
+                                         database_url="sqlite:///./x.db", _env_file=None))
+    assert any("DATABASE_URL" in e for e in errors)
     errors, warnings = config_problems(Settings(env="production", jwt_secret="x" * 48, cors_origins="https://crunch.app",
-                                                database_url="sqlite:///./x.db", _env_file=None))
+                                                database_url="sqlite:///./x.db", allow_sqlite_in_production=True, _env_file=None))
     assert errors == [] and any("SQLite" in w for w in warnings)
+    errors, _ = config_problems(Settings(env="production", jwt_secret="x" * 48, cors_origins="",
+                                         database_url="postgresql://u:p@db.example/crunch", _env_file=None))
+    assert errors == []
+
+
+def test_blank_host_settings_fall_back_to_defaults():
+    s = Settings(database_url="  ", jwt_secret="", env="", _env_file=None)
+    assert s.database_url == "sqlite:///./crunch.db" and s.jwt_secret == DEV_SECRET and s.env == "development"
+    assert Settings(cors_origins="", _env_file=None).cors_list == []
 
 
 def test_old_databases_get_the_new_column(tmp_path):

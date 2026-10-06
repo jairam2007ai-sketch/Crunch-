@@ -100,13 +100,26 @@ Create your owner account on this computer first (http://127.0.0.1:8000/admin/).
 
 The simplest setup is **one Render web service** running the Dockerfile. It serves the API and all three websites from one address, with the database on **Supabase** or **Neon**.
 
-1. **Database.** Create a free project on [Supabase](https://supabase.com) or [Neon](https://neon.tech) and copy its Postgres connection string.
+1. **Database.** Create a free project on [Neon](https://neon.tech) and copy its connection string (it starts with `postgresql://` and ends with `?sslmode=require`). Supabase works too, but use its **Session pooler** connection string: Supabase's direct address needs IPv6, which Render doesn't support.
 2. **Code.** Put this folder in a GitHub repository. The `.gitignore` keeps passwords, databases and build files out.
-3. **Render.** At [render.com](https://render.com) choose **New → Blueprint** and pick your repository. Render reads `render.yaml` and asks for:
+3. **Render.** At [render.com](https://render.com) choose **New → Blueprint** and pick your repository. Render reads `render.yaml`, builds with **Docker**, and asks for:
    - `DATABASE_URL`: the string from step 1
-   - `OWNER_EMAIL` and `OWNER_PASSWORD`: your login. The account is created on the first start.
+   - `OWNER_EMAIL` and `OWNER_PASSWORD`: your login, created on the first start. Use three random words; the server refuses easy passwords.
    - `AI_API_KEY` and `AI_MODEL`: optional (see below)
 4. **After the first deploy,** delete `OWNER_PASSWORD` from Render's environment settings. Then sign in at `https://your-app.onrender.com/admin/` and add your sellers on the **Team** page.
+
+**Already made a plain Python web service on Render?** Its build fails with `Could not open requirements file`. Switch it to Docker instead of starting again:
+1. **Settings → Build → Source → Edit**, choose **Runtime: Docker**, leave the Dockerfile path as `./Dockerfile`, and click **Deploy**.
+2. **Environment**, add these variables:
+
+   | Key | Value |
+   |---|---|
+   | `JWT_SECRET` | click **Generate** |
+   | `DATABASE_URL` | your Neon connection string |
+   | `OWNER_EMAIL` | your email |
+   | `OWNER_PASSWORD` | a strong password, removed after the first successful deploy |
+
+The server checks its settings at start. If one is missing or weak, it stops, and the **Logs** tab says in plain words what to fix.
 
 Things to know:
 - Render's free service **sleeps after 15 minutes without visitors**, so the first visit after that takes about a minute. A free [UptimeRobot](https://uptimerobot.com) check on `/api/health` every 10 minutes keeps it awake while the cart is open.

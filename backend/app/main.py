@@ -45,6 +45,10 @@ async def lifespan(_app: FastAPI):
                 db.add(User(name=settings.owner_name, email=settings.owner_email.strip().lower(),
                             password_hash=hash_password(settings.owner_password), role="owner"))
                 db.commit()
+        elif settings.is_production and not has_users:
+            # the browser setup form is switched off in production, so the owner must come from settings
+            raise RuntimeError("No owner account yet. Set OWNER_EMAIL and OWNER_PASSWORD in your host's environment "
+                               "settings for the first start, then remove OWNER_PASSWORD.")
     yield
 
 
