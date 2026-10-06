@@ -1,7 +1,7 @@
 # One container: builds the three websites, then runs the API that serves them.
 
 # 1) build the buyer, seller and admin sites
-FROM node:22-alpine AS web
+FROM node:26-alpine AS web
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
