@@ -171,7 +171,13 @@ def change_status(db: Session, order: Order, new_status: str, user: User | None,
     return order
 
 
+def _lock(db: Session, order: Order) -> Order:
+    """Re-read the order with a row lock (Postgres) so concurrent clicks are handled one at a time."""
+    return db.scalar(select(Order).where(Order.id == order.id).with_for_update()) or order
+
+
 def record_payment(db: Session, order: Order, method: str, reference: str, user: User) -> Order:
+    order = _lock(db, order)
     if order.status == "cancelled":
         raise HTTPException(409, "This order was cancelled.")
     if order.payment_status != "unpaid":
@@ -196,6 +202,7 @@ def refundable(db: Session, order: Order) -> int:
 
 
 def request_refund(db: Session, order: Order, amount: int, method: str, reason: str, user: User) -> Refund:
+    order = _lock(db, order)
     if order.payment_status == "unpaid":
         raise HTTPException(409, "This order hasn't been paid, so there's nothing to refund.")
     left = refundable(db, order)
@@ -214,9 +221,10 @@ def request_refund(db: Session, order: Order, amount: int, method: str, reason: 
 
 
 def decide_refund(db: Session, refund: Refund, approve: bool, note: str, user: User) -> Refund:
+    order = _lock(db, refund.order)
+    db.refresh(refund)
     if refund.status != "pending":
         raise HTTPException(409, f"This refund was already {refund.status}.")
-    order = refund.order
     if approve:
         left = paid_amount(order) - order.refunded_amount
         if refund.amount > left:

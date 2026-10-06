@@ -41,6 +41,14 @@ class Settings(BaseSettings):
     online_orders_per_window: int = 5
     online_order_window_seconds: int = 600
 
+    # Abuse protection for the whole API
+    api_requests_per_minute: int = 600      # per IP address
+    max_request_bytes: int = 256 * 1024     # no legitimate request is bigger
+    # API docs (/api/docs) are always on for this computer; set true to open them to everyone
+    api_docs_public: bool = False
+    # Extra origins the websites may call, when the API lives on another domain (CSP connect-src)
+    csp_connect_extra: str = ""
+
     @property
     def cors_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
@@ -61,6 +69,34 @@ class Settings(BaseSettings):
         if not base_url or not model:
             return None
         return base_url, api_key, model
+
+
+def config_problems(s: Settings) -> tuple[list[str], list[str]]:
+    """(errors that stop the server, warnings to fix) for the current environment variables."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    weak_secret = s.jwt_secret == DEV_SECRET or len(s.jwt_secret) < 32
+    if s.is_production:
+        if weak_secret:
+            errors.append("JWT_SECRET must be a random value of at least 32 characters. "
+                          'Make one with: python -c "import secrets; print(secrets.token_urlsafe(48))"')
+        if "*" in s.cors_list:
+            errors.append("CORS_ORIGINS can't be * in production. List your website addresses instead.")
+        if any(o.startswith("http://") and "localhost" not in o and "127.0.0.1" not in o for o in s.cors_list):
+            warnings.append("CORS_ORIGINS has a plain http:// address. Use https:// addresses in production.")
+        if s.database_url.startswith("sqlite"):
+            warnings.append("Production is using SQLite. Free hosts wipe their disk on redeploy; use Supabase or Neon.")
+        if s.api_docs_public:
+            warnings.append("API_DOCS_PUBLIC is on, so anyone can browse your API reference.")
+    elif weak_secret:
+        warnings.append("JWT_SECRET is the development default. start.bat writes a random one to backend/.env.")
+    provider = s.ai_provider.lower().strip()
+    if provider not in ("", "basic", "none"):
+        if not s.ai_endpoint():
+            warnings.append("AI_PROVIDER is set but AI_MODEL (or AI_BASE_URL) is missing, so the assistant stays in basic mode.")
+        if provider in ("openrouter", "huggingface") and not s.ai_api_key:
+            warnings.append(f"AI_PROVIDER is {provider} but AI_API_KEY is empty.")
+    return errors, warnings
 
 
 @lru_cache

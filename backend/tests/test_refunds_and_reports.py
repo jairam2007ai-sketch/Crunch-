@@ -79,7 +79,7 @@ def test_revenue_counts_paid_orders_minus_refunds(client, seller, owner):
 
 def test_profit_appears_once_costs_are_set(client, owner):
     products = client.get("/api/products", headers=owner).json()
-    for p, cost in zip(products, (22, 31)):
+    for p, cost in zip(products, (22, 31), strict=True):
         assert client.patch(f"/api/products/{p['id']}", json={"cost": cost}, headers=owner).status_code == 200
     counter(client, owner, [packet(), loaded()])
     s = client.get("/api/dashboard/summary", headers=owner).json()["today"]

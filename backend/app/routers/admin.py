@@ -9,7 +9,7 @@ from ..db import get_db
 from ..deps import audit, require_owner, require_staff
 from ..models import AuditLog, Product, User
 from ..schemas import ProductUpdateIn, SettingsIn, UserCreateIn, UserOut, UserUpdateIn
-from ..security import hash_password
+from ..security import hash_password, password_weakness
 from ..services.orders import get_settings_row, user_names
 from ..timeutil import iso_utc
 
@@ -51,7 +51,8 @@ def list_users(db: Session = Depends(get_db), user: User = Depends(require_owner
 
 @router.post("/users", response_model=UserOut, status_code=201)
 def create_user(body: UserCreateIn, db: Session = Depends(get_db), user: User = Depends(require_owner)):
-    problem = email_problem(db, body.email) or password_problem(db, body.password, body.role)
+    problem = (password_weakness(body.password, body.email, body.name) or email_problem(db, body.email)
+               or password_problem(db, body.password, body.role))
     if problem:
         raise HTTPException(409, problem)
     new = User(name=body.name.strip(), email=body.email, password_hash=hash_password(body.password), role=body.role)
@@ -78,13 +79,17 @@ def update_user(user_id: int, body: UserUpdateIn, db: Session = Depends(get_db),
         target.name = body.name.strip()
         new["name"] = target.name
     if body.is_active is not None:
+        if target.is_active and not body.is_active:
+            target.token_version = (target.token_version or 0) + 1  # signs them out everywhere
         target.is_active = body.is_active
         new["is_active"] = body.is_active
     if body.password is not None:
-        problem = password_problem(db, body.password, target.role, exclude_id=target.id)
+        problem = (password_weakness(body.password, target.email, target.name)
+                   or password_problem(db, body.password, target.role, exclude_id=target.id))
         if problem:
             raise HTTPException(409, problem)
         target.password_hash = hash_password(body.password)
+        target.token_version = (target.token_version or 0) + 1  # old sessions stop working
         new["password"] = "reset"
     audit(db, user, "user.update", "user", target.id, new=new)
     db.commit()
@@ -139,7 +144,7 @@ def audit_logs(before_id: int | None = None, action: str | None = None, limit: i
     if before_id:
         q = q.where(AuditLog.id < before_id)
     if action:
-        q = q.where(AuditLog.action.startswith(action))
+        q = q.where(AuditLog.action.startswith(action, autoescape=True))
     names = user_names(db)
     return [{"id": a.id, "user": names.get(a.user_id) if a.user_id else None, "action": a.action,
              "entity_type": a.entity_type, "entity_id": a.entity_id, "old": a.old_value, "new": a.new_value,

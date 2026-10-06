@@ -18,7 +18,7 @@ OPEN_BROWSER = not os.environ.get("CRUNCH_NO_BROWSER")
 
 def _running() -> bool:
     try:
-        urllib.request.urlopen(URL + "/api/health", timeout=1)
+        urllib.request.urlopen(URL + "/api/health", timeout=1)  # noqa: S310 (fixed http://127.0.0.1 address)
         return True
     except OSError:
         return False
@@ -43,4 +43,4 @@ if __name__ == "__main__":
     print("  Keep this window open while you use the sites. Close it to stop the server.\n", flush=True)
     if OPEN_BROWSER:
         threading.Thread(target=_open_when_ready, daemon=True).start()
-    uvicorn.run("app.main:app", host=HOST, port=PORT, log_level="warning")
+    uvicorn.run("app.main:app", host=HOST, port=PORT, log_level="warning", server_header=False)

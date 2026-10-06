@@ -16,14 +16,16 @@ from sqlalchemy import select
 
 from .accounts import email_problem, password_problem
 from .db import Base, SessionLocal, engine
+from .migrate import upgrade
 from .models import Ingredient, Order, OrderItem, Payment, Product, User
-from .security import hash_password, new_tracking_token
+from .security import hash_password, new_tracking_token, password_weakness
 from .seed import ensure_seed
 from .timeutil import shop_tz, today_local
 
 
 def _init():
     Base.metadata.create_all(engine)
+    upgrade(engine)
     db = SessionLocal()
     ensure_seed(db)
     return db
@@ -38,8 +40,8 @@ def create_user(role: str, email: str, name: str, password: str | None) -> None:
         password = getpass.getpass("Password (8+ characters): ")
         if password != getpass.getpass("Type it again: "):
             sys.exit("The passwords didn't match.")
-    if len(password) < 8:
-        sys.exit("Use at least 8 characters.")
+    if problem := password_weakness(password, email, name):
+        sys.exit(problem)
     if problem := password_problem(db, password, role):
         sys.exit(problem)
     db.add(User(name=name, email=email, password_hash=hash_password(password), role=role))

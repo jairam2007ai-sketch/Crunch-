@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -16,7 +19,12 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements-dev.txt
-      - run: pytest
+      - name: Tests (including security tests)
+        run: pytest
+      - name: Lint for unused code and risky patterns
+        run: ruff check app tests --select F,B,S --ignore S101,S311,S105,S106,B008,B904
+      - name: Known vulnerabilities in dependencies
+        run: pip-audit -r requirements.txt
 
   frontend:
     runs-on: ubuntu-latest
@@ -29,4 +37,17 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
+      - name: Known vulnerabilities in dependencies
+        run: npm audit --audit-level=high
       - run: npm run build
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install detect-secrets==1.5.0
+      - name: No new secrets committed (reviewed ones are in .secrets.baseline)
+        run: git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline

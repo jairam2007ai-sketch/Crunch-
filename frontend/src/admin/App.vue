@@ -34,6 +34,12 @@ watch(signedIn, (v) => {
 onBeforeUnmount(() => stops.forEach((s) => s()))
 watch(() => route.path, () => { navOpen.value = false })
 
+// If a phone with your sign-in is lost, this ends every session of your account at once.
+async function signOutEverywhere() {
+  try { await session.api.post('/api/auth/logout-everywhere') } catch { /* signed out below anyway */ }
+  session.logout()
+}
+
 const newOrders = computed(() => staff.live.active.filter((o) => o.status === 'placed').length)
 const count = (key) => (key === 'newOrders' ? newOrders.value : badges[key])
 
@@ -85,6 +91,9 @@ const NAV = [
         <p class="m-0 font-semibold">{{ session.state.user?.name }}</p>
         <p class="m-0 truncate text-xs text-[#A79F8B]">{{ session.state.user?.email }}</p>
         <button class="btn btn-light btn-sm mt-3" type="button" @click="session.logout()">Sign out</button>
+        <button class="mt-3 block text-xs text-[#A79F8B] underline hover:text-[#FFF7DA]" type="button" @click="signOutEverywhere">
+          Sign out on all devices
+        </button>
       </div>
     </aside>
     <div v-if="navOpen" class="fixed inset-0 z-40 bg-black/40 lg:hidden" @click="navOpen = false" />

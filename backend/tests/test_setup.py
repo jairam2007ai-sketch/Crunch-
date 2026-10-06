@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from app.config import get_settings
 from app.db import Base, SessionLocal, engine
 from app.main import app
-from app.ratelimit import login_limiter
+from app.ratelimit import reset_all
 from app.seed import ensure_seed
 
 OWNER = {"name": "Jai", "email": "jai@shop.in", "password": "first-pass-1", "role": "owner"}
@@ -12,7 +12,7 @@ OWNER = {"name": "Jai", "email": "jai@shop.in", "password": "first-pass-1", "rol
 def fresh():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
-    login_limiter.reset()
+    reset_all()
     with SessionLocal() as db:
         ensure_seed(db)
 

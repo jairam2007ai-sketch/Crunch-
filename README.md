@@ -55,7 +55,9 @@ python -m app.cli create-seller --email helper@example.com --name "Helper"
 uvicorn app.main:app --reload
 ```
 
-It asks you to type each password privately. The API runs at http://127.0.0.1:8000, and the full API reference is at http://127.0.0.1:8000/docs.
+It asks you to type each password privately. The API runs at http://127.0.0.1:8000, and the full API reference is at http://127.0.0.1:8000/api/docs. For safety it opens only on this computer.
+
+Security is covered in [SECURITY.md](SECURITY.md).
 
 **2. Start the websites** in a second terminal:
 

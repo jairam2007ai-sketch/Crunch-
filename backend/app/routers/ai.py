@@ -8,6 +8,7 @@ from ..config import get_settings
 from ..db import get_db
 from ..deps import audit, require_owner
 from ..models import AuditLog, User
+from ..ratelimit import ai_limiter
 from ..schemas import ChatIn, ConfirmIn
 from ..security import verify_action
 
@@ -24,6 +25,8 @@ def status(user: User = Depends(require_owner)):
 
 @router.post("/chat")
 def chat(body: ChatIn, db: Session = Depends(get_db), user: User = Depends(require_owner)):
+    if not ai_limiter.hit(f"user:{user.id}"):
+        raise HTTPException(429, "That's a lot of questions in a minute. Wait a moment and ask again.")
     history = [m.model_dump() for m in body.messages]
     if history[-1]["role"] != "user":
         raise HTTPException(400, "The last message must be from you.")

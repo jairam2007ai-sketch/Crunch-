@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app.db import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import User  # noqa: E402
-from app.ratelimit import login_limiter  # noqa: E402
+from app.ratelimit import reset_all  # noqa: E402
 from app.routers.public import online_limiter  # noqa: E402
 from app.security import hash_password  # noqa: E402
 from app.seed import ensure_seed  # noqa: E402
@@ -20,7 +20,7 @@ from app.seed import ensure_seed  # noqa: E402
 def client():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
-    login_limiter.reset()
+    reset_all()
     online_limiter.reset()
     with SessionLocal() as db:
         ensure_seed(db)

@@ -43,7 +43,7 @@ def test_login_rate_limit(client):
 
 
 def test_seller_cannot_reuse_the_owners_email_or_password(client, owner):
-    r = client.post("/api/users", headers=owner, json={"name": "Asha", "email": "OWNER@test.in", "password": "asha-pass-12"})
+    r = client.post("/api/users", headers=owner, json={"name": "Asha", "email": "OWNER@test.in", "password": "mango-chips-river"})
     assert r.status_code == 409 and "owner's sign-in" in r.json()["detail"]
     r = client.post("/api/users", headers=owner, json={"name": "Asha", "email": "asha@test.in", "password": "owner-pass-1"})
     assert r.status_code == 409 and "owner's password" in r.json()["detail"]
@@ -59,9 +59,9 @@ def test_seller_cannot_reuse_the_owners_email_or_password(client, owner):
 
 def test_owner_creates_seller_who_can_sign_in(client, owner):
     r = client.post("/api/users", headers=owner,
-                    json={"name": "Asha", "email": "Asha@Test.in", "password": "asha-pass-12"})
+                    json={"name": "Asha", "email": "Asha@Test.in", "password": "mango-chips-river"})
     assert r.status_code == 201
     assert r.json()["email"] == "asha@test.in"
-    r = client.post("/api/auth/login", json={"email": "asha@test.in", "password": "asha-pass-12"})
+    r = client.post("/api/auth/login", json={"email": "asha@test.in", "password": "mango-chips-river"})
     assert r.status_code == 200
     assert r.json()["user"]["role"] == "seller"

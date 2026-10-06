@@ -1,9 +1,11 @@
-fastapi>=0.115,<1
-uvicorn[standard]>=0.30
-sqlalchemy>=2.0.30,<3
-pydantic>=2.7,<3
-pydantic-settings>=2.3,<3
-pyjwt>=2.8,<3
-httpx>=0.27
-psycopg[binary]>=3.2
-tzdata>=2024.1
+# Exact versions, so every install and deploy is identical and audited.
+# Dependabot (.github/dependabot.yml) proposes updates; CI runs pip-audit on each one.
+fastapi==0.142.2
+uvicorn==0.54.0
+sqlalchemy==2.1.3
+pydantic==2.13.5
+pydantic-settings==2.15.0
+pyjwt==2.15.1
+httpx==0.28.1
+psycopg[binary]==3.3.6
+tzdata==2026.5

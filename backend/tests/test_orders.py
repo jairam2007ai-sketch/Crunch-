@@ -136,6 +136,6 @@ def test_active_queue_filter(client, seller):
 
 
 def test_online_order_rate_limit(client):
-    for i in range(5):
+    for _ in range(5):
         assert online(client, [packet()]).status_code == 201
     assert online(client, [packet()]).status_code == 429
