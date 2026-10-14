@@ -9,7 +9,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # 2) the FastAPI server
-FROM python:3.12-slim
+FROM python:3.14-slim
 # The API serves the websites itself, so no cross-site (CORS) access is needed unless you add some.
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 ENV=production CORS_ORIGINS=""
 WORKDIR /app/backend
